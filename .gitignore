@@ -1,0 +1,8 @@
+# Ignore Vim swap files
+*.swp
+
+# Ignore Python virtual environment files
+pyvenv.cfg
+bin/
+lib/
+lib64/
