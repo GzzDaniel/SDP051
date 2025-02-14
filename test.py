@@ -5,7 +5,7 @@ import signal
 import sys
 
 class BrushlessMotor:
-    def __init__(self, pin=18, freq=50):
+    def __init__(self, pin=26, freq=50):
         self.pin = pin
         self.freq = freq
         self.motor = None
