@@ -49,15 +49,13 @@
         /* Control pad layout */
         .control-pad-container {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
+            justify-content: space-between;
             margin-top: 20px;
         }
 
         .forward-backward-pad {
-            width: 80%;
-            height: 150px;
+            width: 100px;
+            height: 240px;
             background-color: #f0f0f0;
             border-radius: 10px;
             position: relative;
@@ -65,7 +63,7 @@
         }
 
         .left-right-pad {
-            width: 80%;
+            width: 240px;
             height: 100px;
             background-color: #f0f0f0;
             border-radius: 10px;
@@ -188,10 +186,7 @@
         <div class="control-info">
             <p>Drag vertical pad up/down for throttle control</p>
             <p>Drag horizontal pad left/right for steering control</p>
-            <p><strong>Controls auto-reset when released!</strong></p>
         </div>
-        
-        <button id="resetBtn" style="margin-top: 20px; padding: 10px 20px; background-color: #e74c3c; color: white; border: none; border-radius: 5px; font-weight: bold;">EMERGENCY STOP</button>
     </div>
     
     <script>
@@ -442,16 +437,12 @@
             fbDragging = false;
             lrDragging = false;
             
-            // Auto-center both controls when released
+            // Auto-center steering when released (but keep throttle)
             if (hasControl) {
-                // Reset both throttle and steering
-                fbHandle.style.top = '50%';
                 lrHandle.style.left = '50%';
-                throttlePercent = 0;
                 steeringPercent = 0;
-                throttleValue.textContent = '0%';
                 steeringValue.textContent = '0%';
-                sendControlCommand(0, 0);
+                sendControlCommand(throttlePercent, 0);
             }
         });
         
@@ -459,16 +450,12 @@
             fbDragging = false;
             lrDragging = false;
             
-            // Auto-center both controls when released
+            // Auto-center steering when released (but keep throttle)
             if (hasControl) {
-                // Reset both throttle and steering
-                fbHandle.style.top = '50%';
                 lrHandle.style.left = '50%';
-                throttlePercent = 0;
                 steeringPercent = 0;
-                throttleValue.textContent = '0%';
                 steeringValue.textContent = '0%';
-                sendControlCommand(0, 0);
+                sendControlCommand(throttlePercent, 0);
             }
         });
         
