@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RC Car Controller</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>RC Car Controller</h1>
+        
+        <div id="statusDisplay" class="status">
+            Connecting to server...
+        </div>
+        
+        <div id="timer" class="timer">
+            Waiting for control...
+        </div>
+        
+        <div class="controls-layout">
+            <div class="slider-container">
+                <span class="slider-label">Forward/Backward</span>
+                <input type="range" id="throttleSlider" class="slider vertical-slider" min="-100" max="100" value="0" orient="vertical">
+                <div id="throttleValue">0%</div>
+            </div>
+            
+            <div class="slider-container">
+                <span class="slider-label">Left/Right</span>
+                <input type="range" id="steeringSlider" class="slider" min="-100" max="100" value="0">
+                <div id="steeringValue">0%</div>
+            </div>
+        </div>
+        
+        <!-- Video stream (uncomment and update IP if available) -->
+        <!-- <div class="video-container">
+            <img src="http://YOUR_PI_IP:8000/stream.mjpg" class="video-stream" alt="Video Stream">
+        </div> -->
+    </div>
+    <script src="/static/controller.js"></script>
+</body>
+</html>
