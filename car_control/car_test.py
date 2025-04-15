@@ -1,8 +1,6 @@
-# pi_client.py - Run this on your Raspberry Pi
 import socketio
 import RPi.GPIO as gpio
 import time
-import sys
 
 # Configure Socket.IO client
 sio = socketio.Client()
@@ -18,11 +16,19 @@ LR_PIN2 = 22  # Right
 FB_PIN1 = 23  # Forward
 FB_PIN2 = 24  # Backward
 
+# PWM settings
+PWM_FREQ = 100  # PWM frequency in Hz
+fb_pwm = None
+lr_pwm = None
+
 # Current state tracking
-current_speed = 50  # Default starting speed (0-100)
+current_fb_speed = 0  # -100 to 100
+current_lr_speed = 0  # -100 to 100
 
 def setup_gpio():
-    """Initialize GPIO pins"""
+    """Initialize GPIO pins with PWM support"""
+    global fb_pwm, lr_pwm
+    
     # Clean up any previous GPIO setup
     gpio.setwarnings(False)
     try:
@@ -45,47 +51,105 @@ def setup_gpio():
     gpio.output(FB_PIN1, False)
     gpio.output(FB_PIN2, False)
     
-    print("GPIO initialized and ready for control")
+    # Setup PWM on all pins
+    fb_pwm = [gpio.PWM(FB_PIN1, PWM_FREQ), gpio.PWM(FB_PIN2, PWM_FREQ)]
+    lr_pwm = [gpio.PWM(LR_PIN1, PWM_FREQ), gpio.PWM(LR_PIN2, PWM_FREQ)]
+    
+    # Start PWM with 0% duty cycle (stopped)
+    for pwm in fb_pwm + lr_pwm:
+        pwm.start(0)
+    
+    print("GPIO initialized with PWM and ready for control")
 
-def move_forward():
-    """Move the car forward"""
-    gpio.output(FB_PIN1, True)
-    gpio.output(FB_PIN2, False)
-    print("Moving forward")
+def set_forward_backward(speed_percent):
+    """
+    Set forward/backward movement with speed control
+    speed_percent: -100 to 100, negative for backward, positive for forward
+    """
+    global current_fb_speed
+    
+    # Ensure PWM is available
+    if fb_pwm is None:
+        return
+    
+    # Limit to valid range
+    speed_percent = max(-100, min(100, speed_percent))
+    current_fb_speed = speed_percent
+    
+    abs_speed = abs(speed_percent)
+    
+    # Map 0-100 to PWM duty cycle (adjust this range as needed for your motors)
+    # For some motors, lower values might not move the motor, so we add a minimum
+    if abs_speed > 0:
+        duty_cycle = 20 + (abs_speed * 0.8)  # Scale 0-100 to 20-100
+    else:
+        duty_cycle = 0
+    
+    # Set direction based on sign and apply PWM
+    if speed_percent > 0:  # Forward
+        fb_pwm[0].ChangeDutyCycle(duty_cycle)  # FB_PIN1
+        fb_pwm[1].ChangeDutyCycle(0)           # FB_PIN2
+        print(f"Moving forward at {duty_cycle}% duty cycle")
+    elif speed_percent < 0:  # Backward
+        fb_pwm[0].ChangeDutyCycle(0)           # FB_PIN1
+        fb_pwm[1].ChangeDutyCycle(duty_cycle)  # FB_PIN2
+        print(f"Moving backward at {duty_cycle}% duty cycle")
+    else:  # Stop
+        fb_pwm[0].ChangeDutyCycle(0)
+        fb_pwm[1].ChangeDutyCycle(0)
+        print("Stopped forward/backward movement")
 
-def move_backward():
-    """Move the car backward"""
-    gpio.output(FB_PIN1, False)
-    gpio.output(FB_PIN2, True)
-    print("Moving backward")
-
-def turn_left():
-    """Turn the car left"""
-    gpio.output(LR_PIN1, True)
-    gpio.output(LR_PIN2, False)
-    print("Turning left")
-
-def turn_right():
-    """Turn the car right"""
-    gpio.output(LR_PIN1, False)
-    gpio.output(LR_PIN2, True)
-    print("Turning right")
-
-def stop_forward_backward():
-    """Stop forward/backward movement"""
-    gpio.output(FB_PIN1, False)
-    gpio.output(FB_PIN2, False)
-    print("Stopped forward/backward")
-
-def stop_turning():
-    """Stop turning"""
-    gpio.output(LR_PIN1, False)
-    gpio.output(LR_PIN2, False)
-    print("Stopped turning")
+def set_left_right(speed_percent):
+    """
+    Set left/right turning with speed control
+    speed_percent: -100 to 100, negative for left, positive for right
+    """
+    global current_lr_speed
+    
+    # Ensure PWM is available
+    if lr_pwm is None:
+        return
+    
+    # Limit to valid range
+    speed_percent = max(-100, min(100, speed_percent))
+    current_lr_speed = speed_percent
+    
+    abs_speed = abs(speed_percent)
+    
+    # Map 0-100 to PWM duty cycle (adjust this range as needed for your motors)
+    # For some motors, lower values might not move the motor, so we add a minimum
+    if abs_speed > 0:
+        duty_cycle = 20 + (abs_speed * 0.8)  # Scale 0-100 to 20-100
+    else:
+        duty_cycle = 0
+    
+    # Set direction based on sign and apply PWM
+    if speed_percent > 0:  # Right
+        lr_pwm[0].ChangeDutyCycle(0)           # LR_PIN1
+        lr_pwm[1].ChangeDutyCycle(duty_cycle)  # LR_PIN2
+        print(f"Turning right at {duty_cycle}% duty cycle")
+    elif speed_percent < 0:  # Left
+        lr_pwm[0].ChangeDutyCycle(duty_cycle)  # LR_PIN1
+        lr_pwm[1].ChangeDutyCycle(0)           # LR_PIN2
+        print(f"Turning left at {duty_cycle}% duty cycle")
+    else:  # Stop turning
+        lr_pwm[0].ChangeDutyCycle(0)
+        lr_pwm[1].ChangeDutyCycle(0)
+        print("Stopped turning")
 
 def cleanup_gpio():
     """Clean up GPIO resources"""
+    global fb_pwm, lr_pwm
+    
     try:
+        # Stop PWM
+        if fb_pwm:
+            for pwm in fb_pwm:
+                pwm.stop()
+        if lr_pwm:
+            for pwm in lr_pwm:
+                pwm.stop()
+        
         gpio.cleanup()
         print("GPIO cleaned up")
     except Exception as e:
@@ -108,41 +172,35 @@ def disconnect():
 def pi_command(data):
     print(f"Received command: {data}")
     
-    # Handle string commands (legacy format)
-    if isinstance(data, str):
-        if data == "UP pressed":
-            move_forward()
-        elif data == "DOWN pressed":
-            move_backward()
-        elif data == "LEFT pressed":
-            turn_left()
-        elif data == "RIGHT pressed":
-            turn_right()
-        elif data == "UP released" or data == "DOWN released":
-            stop_forward_backward()
-        elif data == "LEFT released" or data == "RIGHT released":
-            stop_turning()
-    
-    # Handle dictionary commands (new format)
-    elif isinstance(data, dict):
+    # Handle dictionary commands
+    if isinstance(data, dict):
         throttle = data.get("throttle")
         turn = data.get("turn")
+        throttle_percent = data.get("throttle_percent", 0)
+        turn_percent = data.get("turn_percent", 0)
         
-        # Process forward/backward movement
-        if throttle == "forward":
-            move_forward()
-        elif throttle == "backward":
-            move_backward()
-        elif throttle == "stop":
-            stop_forward_backward()
+        # Calculate actual speed values (-100 to 100)
+        fb_speed = throttle_percent if throttle == "forward" else -throttle_percent if throttle == "backward" else 0
+        lr_speed = turn_percent if turn == "right" else -turn_percent if turn == "left" else 0
         
-        # Process turning
-        if turn == "left":
-            turn_left()
-        elif turn == "right":
-            turn_right()
-        elif turn == "none":
-            stop_turning()
+        # Apply speed control
+        set_forward_backward(fb_speed)
+        set_left_right(lr_speed)
+    
+    # Handle legacy string commands (for backward compatibility)
+    elif isinstance(data, str):
+        if data == "UP pressed":
+            set_forward_backward(100)
+        elif data == "DOWN pressed":
+            set_forward_backward(-100)
+        elif data == "LEFT pressed":
+            set_left_right(-100)
+        elif data == "RIGHT pressed":
+            set_left_right(100)
+        elif data == "UP released" or data == "DOWN released":
+            set_forward_backward(0)
+        elif data == "LEFT released" or data == "RIGHT released":
+            set_left_right(0)
 
 # Main program
 if __name__ == "__main__":

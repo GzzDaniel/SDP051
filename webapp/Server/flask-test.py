@@ -1,4 +1,3 @@
-# simple_relay_server.py
 from flask import Flask, request, render_template
 from flask_socketio import SocketIO, emit
 import time
@@ -148,11 +147,23 @@ def handle_identify(data):
         pi_sid = request.sid
         print(f"Pi connected: {pi_sid}")
         notify_admins("Pi connected to server")
+        # Send immediate stop command to ensure car is in a safe state
+        if pi_sid:
+            emit('pi_command', {
+                'throttle': 'stop',
+                'turn': 'none',
+                'throttle_percent': 0,
+                'turn_percent': 0
+            }, to=pi_sid)
 
 @socketio.on("adminRequestQueue")
 def handle_admin_request_queue(data):
     admin_sids.append(request.sid)
-    emit("adminResponseQueue", user_queue.queue, to=request.sid)
+    queue_data = {
+        "queue": user_queue.queue,
+        "current_index": user_queue.idx
+    }
+    emit("adminResponseQueue", queue_data, to=request.sid)
 
 @socketio.on("disconnect")
 def handle_disconnect():
@@ -176,6 +187,17 @@ def handle_disconnect():
 @socketio.on("timeover")
 def handle_timeover(data):
     print(f"Time ended for: {request.sid}")
+    
+    # Send stop command to Pi
+    if pi_sid:
+        emit('pi_command', {
+            'throttle': 'stop',
+            'turn': 'none',
+            'throttle_percent': 0,
+            'turn_percent': 0
+        }, to=pi_sid)
+    
+    # Move to next user
     user_queue.next_user()
 
 @socketio.on("timeleft")
@@ -195,30 +217,96 @@ def handle_message(data):
     if isinstance(data, dict):
         throttle = data.get("throttle")
         turn = data.get("turn")
+        throttle_percent = data.get("throttle_percent", 0)
+        turn_percent = data.get("turn_percent", 0)
         
-        print(f"Control message - Throttle: {throttle}, Turn: {turn}")
+        # Log the command (with percentage details)
+        print(f"Control message - Throttle: {throttle} ({throttle_percent}%), Turn: {turn} ({turn_percent}%)")
         
         # Check if sender is the active user
         current_user = user_queue.get_current_user()
         if current_user and current_user['sid'] == request.sid:
             # Forward the command to the Pi
             if pi_sid:
-                emit('pi_command', data, to=pi_sid)
+                # Make sure we send the percentage values along with the direction
+                emit('pi_command', {
+                    'throttle': throttle,
+                    'turn': turn,
+                    'throttle_percent': throttle_percent,
+                    'turn_percent': turn_percent
+                }, to=pi_sid)
             else:
                 print("No Pi connected to receive command")
         else:
             # Ignore commands from non-active users
             print(f"Ignoring command from non-active user: {request.sid}")
 
+# Admin operations
+@socketio.on("adminSetDefaultTime")
+def handle_admin_set_default_time(data):
+    default_time = data.get("time", 60)
+    # Implementation to change default time
+    print(f"Admin set default time to {default_time} seconds")
+    notify_admins(f"Default time set to {default_time} seconds")
+
+@socketio.on("adminUpdateUser")
+def handle_admin_update_user(data):
+    # Update user data in queue
+    sid = data.get("sid")
+    new_time = data.get("timeAllowed")
+    
+    for user in user_queue.queue:
+        if user["sid"] == sid and new_time:
+            user["timeAllowed"] = new_time
+            notify_admins_row(user)
+            break
+    
+    notify_admins(f"Updated user {sid} time to {new_time}s")
+
+@socketio.on("adminRemoveUser")
+def handle_admin_remove_user(data):
+    sid = data.get("sid")
+    user_queue.remove_user(sid)
+    notify_admins(f"Admin removed user {sid} from queue")
+
+@socketio.on("adminForceNext")
+def handle_admin_force_next(data):
+    # Send stop command to Pi
+    if pi_sid:
+        emit('pi_command', {
+            'throttle': 'stop',
+            'turn': 'none',
+            'throttle_percent': 0,
+            'turn_percent': 0
+        }, to=pi_sid)
+    
+    # Move to next user
+    user_queue.next_user()
+    notify_admins("Admin forced next user")
+
+@socketio.on("adminEmergencyStop")
+def handle_admin_emergency_stop(data):
+    # Emergency stop - send stop command to Pi
+    if pi_sid:
+        emit('pi_command', {
+            'throttle': 'stop',
+            'turn': 'none',
+            'throttle_percent': 0,
+            'turn_percent': 0
+        }, to=pi_sid)
+        notify_admins("EMERGENCY STOP initiated")
+    else:
+        notify_admins("EMERGENCY STOP failed - Pi not connected")
+
 # ====================== ADMIN FUNCTIONS ======================
 def notify_admins_queue():
     """Send the current queue to all admins"""
-    queue_with_current = {
+    queue_data = {
         "queue": user_queue.queue,
         "current_index": user_queue.idx
     }
     for sid in admin_sids:
-        emit("adminResponseQueue", queue_with_current, to=sid)
+        emit("adminResponseQueue", queue_data, to=sid)
 
 def notify_admins_row(row):
     """Send updated row data to all admins"""
