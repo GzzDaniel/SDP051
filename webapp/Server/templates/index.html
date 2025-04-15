@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,7 +6,176 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RC Car Controller</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
-    <link rel="stylesheet" href="/static/styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background-color: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .status {
+            text-align: center;
+            margin: 10px 0;
+            padding: 8px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+        }
+
+        .timer {
+            margin: 20px 0;
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .controls-layout {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        .slider-container {
+            margin: 20px 0;
+            text-align: center;
+            width: 100%;
+        }
+
+        .slider-label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .slider {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .vertical-slider-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 200px;
+        }
+
+        .vertical-slider {
+            height: 200px;
+            -webkit-appearance: slider-vertical;
+            writing-mode: bt-lr;
+            width: 40px;
+        }
+
+        .control-value {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        .control-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            grid-gap: 10px;
+            margin: 20px 0;
+        }
+
+        .control-button {
+            padding: 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: #3498db;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .control-button:hover {
+            background-color: #2980b9;
+        }
+
+        .control-button:active {
+            background-color: #1c6ea4;
+        }
+
+        .control-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .button-forward {
+            grid-column: 2;
+            grid-row: 1;
+        }
+
+        .button-left {
+            grid-column: 1;
+            grid-row: 2;
+        }
+
+        .button-stop {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        .button-right {
+            grid-column: 3;
+            grid-row: 2;
+        }
+
+        .button-backward {
+            grid-column: 2;
+            grid-row: 3;
+        }
+
+        .video-container {
+            width: 100%;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .video-stream {
+            max-width: 100%;
+            border-radius: 10px;
+        }
+
+        .control-info {
+            margin-top: 20px;
+            background-color: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        /* Mobile optimization */
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .control-button {
+                padding: 10px;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -16,28 +186,443 @@
         </div>
         
         <div id="timer" class="timer">
-            Waiting for control...
+            Waiting for your turn... <span id="countdown">wait</span>
         </div>
         
         <div class="controls-layout">
+            <!-- Directional Control Buttons -->
+            <div class="control-buttons">
+                <button id="forward" class="control-button button-forward" disabled>Forward</button>
+                <button id="left" class="control-button button-left" disabled>Left</button>
+                <button id="stop" class="control-button button-stop" disabled>Stop</button>
+                <button id="right" class="control-button button-right" disabled>Right</button>
+                <button id="backward" class="control-button button-backward" disabled>Backward</button>
+            </div>
+            
+            <!-- Slider Controls -->
             <div class="slider-container">
-                <span class="slider-label">Forward/Backward</span>
-                <input type="range" id="throttleSlider" class="slider vertical-slider" min="-100" max="100" value="0" orient="vertical">
-                <div id="throttleValue">0%</div>
+                <span class="slider-label">Throttle (Forward/Backward)</span>
+                <input type="range" id="throttleSlider" class="slider" min="-100" max="100" value="0" step="10" disabled>
+                <div id="throttleValue" class="control-value">0%</div>
             </div>
             
             <div class="slider-container">
-                <span class="slider-label">Left/Right</span>
-                <input type="range" id="steeringSlider" class="slider" min="-100" max="100" value="0">
-                <div id="steeringValue">0%</div>
+                <span class="slider-label">Steering (Left/Right)</span>
+                <input type="range" id="steeringSlider" class="slider" min="-100" max="100" value="0" step="10" disabled>
+                <div id="steeringValue" class="control-value">0%</div>
             </div>
         </div>
         
-        <!-- Video stream (uncomment and update IP if available) -->
+        <div class="control-info">
+            <p>Use keyboard arrow keys, buttons, or sliders to control the car</p>
+        </div>
+        
+        <!-- Uncomment to add video stream -->
         <!-- <div class="video-container">
             <img src="http://YOUR_PI_IP:8000/stream.mjpg" class="video-stream" alt="Video Stream">
         </div> -->
     </div>
-    <script src="/static/controller.js"></script>
+    
+    <script>
+        // Socket connection setup
+        const socket = io();
+        const statusDisplay = document.getElementById('statusDisplay');
+        const timer = document.getElementById('timer');
+        const countdown = document.getElementById('countdown');
+        
+        // Control elements
+        const throttleSlider = document.getElementById('throttleSlider');
+        const steeringSlider = document.getElementById('steeringSlider');
+        const throttleValue = document.getElementById('throttleValue');
+        const steeringValue = document.getElementById('steeringValue');
+        
+        // Button elements
+        const forwardBtn = document.getElementById('forward');
+        const backwardBtn = document.getElementById('backward');
+        const leftBtn = document.getElementById('left');
+        const rightBtn = document.getElementById('right');
+        const stopBtn = document.getElementById('stop');
+        
+        // Control state
+        let hasControl = false;
+        let countdownInterval;
+        let arrowPressed = {
+            up: false,
+            down: false,
+            left: false,
+            right: false
+        };
+        
+        // All control elements in an array for easy enabling/disabling
+        const controlElements = [
+            throttleSlider, steeringSlider,
+            forwardBtn, backwardBtn, leftBtn, rightBtn, stopBtn
+        ];
+        
+        // Enable/disable all controls
+        function setControlsEnabled(enabled) {
+            controlElements.forEach(element => {
+                element.disabled = !enabled;
+            });
+        }
+        
+        // Reset all controls to neutral position
+        function resetControls() {
+            throttleSlider.value = 0;
+            steeringSlider.value = 0;
+            throttleValue.textContent = '0%';
+            steeringValue.textContent = '0%';
+            
+            arrowPressed.up = false;
+            arrowPressed.down = false;
+            arrowPressed.left = false;
+            arrowPressed.right = false;
+        }
+        
+        // Function to send control commands to the server
+        function sendControlCommand(throttleVal, steeringVal) {
+            if (!hasControl) return;
+            
+            // Convert values to string commands
+            let throttle, turn;
+            
+            // Throttle logic
+            if (throttleVal > 0) {
+                throttle = 'forward';
+            } else if (throttleVal < 0) {
+                throttle = 'backward';
+            } else {
+                throttle = 'stop';
+            }
+            
+            // Steering logic
+            if (steeringVal > 0) {
+                turn = 'right';
+            } else if (steeringVal < 0) {
+                turn = 'left';
+            } else {
+                turn = 'none';
+            }
+            
+            // Send command to server
+            socket.emit('message', {
+                throttle: throttle,
+                turn: turn,
+                throttle_percent: Math.abs(throttleVal),
+                turn_percent: Math.abs(steeringVal)
+            });
+            
+            console.log(`Sent command - Throttle: ${throttle} (${throttleVal}%), Turn: ${turn} (${steeringVal}%)`);
+        }
+        
+        // Connect to server and request to be added to queue
+        socket.on('connect', () => {
+            statusDisplay.textContent = 'Connected to server. Waiting for your turn...';
+            statusDisplay.style.backgroundColor = '#d0ffd0';
+            socket.emit('userRequestAdd', { message: 'request control' });
+        });
+        
+        socket.on('connect_error', (error) => {
+            statusDisplay.textContent = 'Connection error: ' + error.message;
+            statusDisplay.style.backgroundColor = '#ffd0d0';
+        });
+        
+        // Start control when it's our turn
+        socket.on('timestart', (timeAllowed) => {
+            hasControl = true;
+            statusDisplay.textContent = 'You have control of the car!';
+            statusDisplay.style.backgroundColor = '#d0ffd0';
+            
+            // Enable controls
+            setControlsEnabled(true);
+            
+            // Start timer
+            let timeLeft = timeAllowed;
+            countdown.textContent = timeLeft;
+            
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+            }
+            
+            countdownInterval = setInterval(() => {
+                timeLeft--;
+                countdown.textContent = timeLeft;
+                socket.emit('timeleft', { message: timeLeft });
+                
+                if (timeLeft <= 0) {
+                    // Time's up - end control
+                    endControl();
+                }
+            }, 1000);
+        });
+        
+        function endControl() {
+            hasControl = false;
+            
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+            
+            // Reset and disable controls
+            resetControls();
+            setControlsEnabled(false);
+            
+            // Stop the car
+            socket.emit('message', { throttle: 'stop', turn: 'none' });
+            
+            // Update UI
+            statusDisplay.textContent = 'Your turn has ended. Waiting for next turn...';
+            statusDisplay.style.backgroundColor = '#e0e0e0';
+            countdown.textContent = 'wait';
+            
+            // Notify server
+            socket.emit('timeover', { message: 'control ended' });
+        }
+        
+        // Slider event listeners
+        throttleSlider.addEventListener('input', function() {
+            const value = parseInt(this.value);
+            throttleValue.textContent = `${value}%`;
+            sendControlCommand(value, parseInt(steeringSlider.value));
+        });
+        
+        steeringSlider.addEventListener('input', function() {
+            const value = parseInt(this.value);
+            steeringValue.textContent = `${value}%`;
+            sendControlCommand(parseInt(throttleSlider.value), value);
+        });
+        
+        // Return steering to center when released
+        steeringSlider.addEventListener('mouseup', function() {
+            this.value = 0;
+            steeringValue.textContent = '0%';
+            sendControlCommand(parseInt(throttleSlider.value), 0);
+        });
+        
+        steeringSlider.addEventListener('touchend', function() {
+            this.value = 0;
+            steeringValue.textContent = '0%';
+            sendControlCommand(parseInt(throttleSlider.value), 0);
+        });
+        
+        // Button control event listeners
+        forwardBtn.addEventListener('mousedown', function() {
+            throttleSlider.value = 100;
+            throttleValue.textContent = '100%';
+            sendControlCommand(100, parseInt(steeringSlider.value));
+        });
+        
+        backwardBtn.addEventListener('mousedown', function() {
+            throttleSlider.value = -100;
+            throttleValue.textContent = '-100%';
+            sendControlCommand(-100, parseInt(steeringSlider.value));
+        });
+        
+        leftBtn.addEventListener('mousedown', function() {
+            steeringSlider.value = -100;
+            steeringValue.textContent = '-100%';
+            sendControlCommand(parseInt(throttleSlider.value), -100);
+        });
+        
+        rightBtn.addEventListener('mousedown', function() {
+            steeringSlider.value = 100;
+            steeringValue.textContent = '100%';
+            sendControlCommand(parseInt(throttleSlider.value), 100);
+        });
+        
+        stopBtn.addEventListener('mousedown', function() {
+            throttleSlider.value = 0;
+            steeringSlider.value = 0;
+            throttleValue.textContent = '0%';
+            steeringValue.textContent = '0%';
+            sendControlCommand(0, 0);
+        });
+        
+        // Release events for buttons
+        [forwardBtn, backwardBtn].forEach(btn => {
+            btn.addEventListener('mouseup', function() {
+                throttleSlider.value = 0;
+                throttleValue.textContent = '0%';
+                sendControlCommand(0, parseInt(steeringSlider.value));
+            });
+            
+            btn.addEventListener('mouseleave', function() {
+                throttleSlider.value = 0;
+                throttleValue.textContent = '0%';
+                sendControlCommand(0, parseInt(steeringSlider.value));
+            });
+        });
+        
+        [leftBtn, rightBtn].forEach(btn => {
+            btn.addEventListener('mouseup', function() {
+                steeringSlider.value = 0;
+                steeringValue.textContent = '0%';
+                sendControlCommand(parseInt(throttleSlider.value), 0);
+            });
+            
+            btn.addEventListener('mouseleave', function() {
+                steeringSlider.value = 0;
+                steeringValue.textContent = '0%';
+                sendControlCommand(parseInt(throttleSlider.value), 0);
+            });
+        });
+        
+        // Touch events for mobile
+        forwardBtn.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            throttleSlider.value = 100;
+            throttleValue.textContent = '100%';
+            sendControlCommand(100, parseInt(steeringSlider.value));
+        });
+        
+        backwardBtn.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            throttleSlider.value = -100;
+            throttleValue.textContent = '-100%';
+            sendControlCommand(-100, parseInt(steeringSlider.value));
+        });
+        
+        leftBtn.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            steeringSlider.value = -100;
+            steeringValue.textContent = '-100%';
+            sendControlCommand(parseInt(throttleSlider.value), -100);
+        });
+        
+        rightBtn.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            steeringSlider.value = 100;
+            steeringValue.textContent = '100%';
+            sendControlCommand(parseInt(throttleSlider.value), 100);
+        });
+        
+        stopBtn.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            throttleSlider.value = 0;
+            steeringSlider.value = 0;
+            throttleValue.textContent = '0%';
+            steeringValue.textContent = '0%';
+            sendControlCommand(0, 0);
+        });
+        
+        // Touch end events
+        [forwardBtn, backwardBtn].forEach(btn => {
+            btn.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                throttleSlider.value = 0;
+                throttleValue.textContent = '0%';
+                sendControlCommand(0, parseInt(steeringSlider.value));
+            });
+        });
+        
+        [leftBtn, rightBtn].forEach(btn => {
+            btn.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                steeringSlider.value = 0;
+                steeringValue.textContent = '0%';
+                sendControlCommand(parseInt(throttleSlider.value), 0);
+            });
+        });
+        
+        // Keyboard control
+        document.addEventListener('keydown', function(event) {
+            if (!hasControl || event.repeat) return;
+            
+            switch(event.key) {
+                case 'ArrowUp':
+                    arrowPressed.up = true;
+                    throttleSlider.value = 100;
+                    throttleValue.textContent = '100%';
+                    break;
+                case 'ArrowDown':
+                    arrowPressed.down = true;
+                    throttleSlider.value = -100;
+                    throttleValue.textContent = '-100%';
+                    break;
+                case 'ArrowLeft':
+                    arrowPressed.left = true;
+                    steeringSlider.value = -100;
+                    steeringValue.textContent = '-100%';
+                    break;
+                case 'ArrowRight':
+                    arrowPressed.right = true;
+                    steeringSlider.value = 100;
+                    steeringValue.textContent = '100%';
+                    break;
+                case ' ': // Spacebar for stop
+                    throttleSlider.value = 0;
+                    steeringSlider.value = 0;
+                    throttleValue.textContent = '0%';
+                    steeringValue.textContent = '0%';
+                    break;
+            }
+            
+            // Calculate combined movement
+            const throttleVal = arrowPressed.up ? 100 : (arrowPressed.down ? -100 : 0);
+            const steeringVal = arrowPressed.right ? 100 : (arrowPressed.left ? -100 : 0);
+            sendControlCommand(throttleVal, steeringVal);
+        });
+        
+        document.addEventListener('keyup', function(event) {
+            if (!hasControl) return;
+            
+            switch(event.key) {
+                case 'ArrowUp':
+                    arrowPressed.up = false;
+                    if (!arrowPressed.down) {
+                        throttleSlider.value = 0;
+                        throttleValue.textContent = '0%';
+                    }
+                    break;
+                case 'ArrowDown':
+                    arrowPressed.down = false;
+                    if (!arrowPressed.up) {
+                        throttleSlider.value = 0;
+                        throttleValue.textContent = '0%';
+                    }
+                    break;
+                case 'ArrowLeft':
+                    arrowPressed.left = false;
+                    if (!arrowPressed.right) {
+                        steeringSlider.value = 0;
+                        steeringValue.textContent = '0%';
+                    }
+                    break;
+                case 'ArrowRight':
+                    arrowPressed.right = false;
+                    if (!arrowPressed.left) {
+                        steeringSlider.value = 0;
+                        steeringValue.textContent = '0%';
+                    }
+                    break;
+            }
+            
+            // Calculate combined movement
+            const throttleVal = arrowPressed.up ? 100 : (arrowPressed.down ? -100 : 0);
+            const steeringVal = arrowPressed.right ? 100 : (arrowPressed.left ? -100 : 0);
+            sendControlCommand(throttleVal, steeringVal);
+        });
+        
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'hidden' && hasControl) {
+                // Stop the car when user switches tabs or minimizes
+                sendControlCommand(0, 0);
+                resetControls();
+            }
+        });
+        
+        // Handle window unload
+        window.addEventListener('beforeunload', function() {
+            if (hasControl) {
+                // Stop the car when closing page
+                socket.emit('message', { throttle: 'stop', turn: 'none' });
+            }
+        });
+        
+        // Initially disable all controls
+        setControlsEnabled(false);
+    </script>
 </body>
 </html>
