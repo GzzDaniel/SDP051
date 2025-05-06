@@ -2,16 +2,6 @@ import RPi.GPIO as gpio
 import time
 import curses
 
-"""
-forward/backward are pin 16 18 (physical) 
-purple -> red
-grey -> black
-
-left/right are pin 17 22
-white -> red
-black -> black
-"""
-
 def init():
     gpio.setmode(gpio.BCM)
     # left right motors

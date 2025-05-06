@@ -9,6 +9,7 @@ grey -> black
 left/right are pin 17 22
 white -> red
 black -> black
+
 """
 
 def init():

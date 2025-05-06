@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RC Car Admin Panel</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
+    <link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1, h2 {
+            color: #333;
+        }
+        
+        .status-panel {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #e8f4f8;
+            border-radius: 5px;
+        }
+        
+        .status-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .status-label {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 5px;
+        }
+        
+        .status-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2980b9;
+        }
+        
+        .table-container {
+            margin: 20px 0;
+            height: 400px;
+        }
+        
+        .action-bar {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        button {
+            padding: 10px 15px;
+            background-color: #2980b9;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover {
+            background-color: #3498db;
+        }
+        
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .emergency-btn {
+            background-color: #c0392b;
+        }
+        
+        .emergency-btn:hover {
+            background-color: #e74c3c;
+        }
+        
+        .log-container {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            height: 200px;
+            overflow-y: auto;
+        }
+        
+        .log-entry {
+            margin: 5px 0;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        .log-time {
+            color: #888;
+            margin-right: 10px;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+            align-items: center;
+        }
+        
+        .input-group label {
+            min-width: 100px;
+        }
+        
+        .input-group input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>RC Car Admin Panel</h1>
+        
+        <div class="status-panel">
+            <div class="status-item">
+                <div class="status-label">Server Status</div>
+                <div class="status-value" id="serverStatus">Connecting...</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Car Status</div>
+                <div class="status-value" id="carStatus">Unknown</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Active Users</div>
+                <div class="status-value" id="activeUsers">0</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Current User</div>
+                <div class="status-value" id="currentUser">None</div>
+            </div>
+        </div>
+        
+        <h2>User Queue</h2>
+        <div class="table-container" id="user-queue-table"></div>
+        
+        <div class="action-bar">
+            <button id="refreshBtn">Refresh Queue</button>
+            <button id="nextUserBtn">Skip to Next User</button>
+            <button id="emergencyStopBtn" class="emergency-btn">Emergency Stop</button>
+        </div>
+        
+        <h2>Queue Settings</h2>
+        <div class="input-group">
+            <label for="defaultTimeInput">Default Time (seconds):</label>
+            <input type="number" id="defaultTimeInput" min="10" max="300" value="60">
+            <button id="setDefaultTimeBtn">Set Default</button>
+        </div>
+        
+        <h2>System Log</h2>
+        <div class="log-container" id="logContainer"></div>
+    </div>
+    
+    <script src="admin.js"></script>
+</body>
+</html>

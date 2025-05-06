@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RC Car Controller</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            touch-action: none;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+
+        .header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: #fff;
+            padding: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 16px;
+            margin: 2px 0;
+        }
+
+        .status {
+            text-align: center;
+            font-size: 12px;
+            padding: 2px;
+            margin: 2px 0;
+            background-color: #e0e0e0;
+            border-radius: 3px;
+        }
+
+        .values {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin: 2px 0;
+        }
+
+        .value {
+            flex: 1;
+            text-align: center;
+            padding: 2px;
+            background-color: #f8f8f8;
+            margin: 0 2px;
+            border-radius: 3px;
+        }
+
+        .control-tabs {
+            display: flex;
+            margin: 2px 0;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 5px;
+            font-size: 12px;
+            background-color: #ddd;
+            border: 1px solid #ccc;
+            border-radius: 3px 3px 0 0;
+            margin: 0 1px;
+        }
+
+        .tab.active {
+            background-color: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        .controls {
+            position: absolute;
+            top: 95px;
+            bottom: 80px;
+            left: 0;
+            right: 0;
+        }
+
+        .control-method {
+            display: none;
+            height: 100%;
+            width: 100%;
+        }
+
+        .control-method.active {
+            display: block;
+        }
+
+        /* Bars Control */
+        .bars-control {
+            display: flex;
+            height: 100%;
+        }
+
+        .throttle-area {
+            position: relative;
+            flex: 1;
+            background-color: rgba(220, 220, 220, 0.2);
+            touch-action: none;
+            border-right: 1px solid #ddd;
+        }
+
+        .steering-area {
+            position: relative;
+            flex: 1;
+            background-color: rgba(220, 220, 220, 0.2);
+            touch-action: none;
+        }
+
+        /* Joystick Control */
+        .joystick-control {
+            position: relative;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .joystick {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            background-color: rgba(220, 220, 220, 0.5);
+            border-radius: 50%;
+            border: 2px solid #ddd;
+            touch-action: none;
+        }
+
+        /* Common Control Elements */
+        .control-indicator {
+            position: absolute;
+            border-radius: 50%;
+            background-color: rgba(52, 152, 219, 0.7);
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .throttle-indicator, .steering-indicator {
+            width: 40px;
+            height: 40px;
+            transform: translate(-50%, -50%);
+            left: 50%;
+            top: 50%;
+        }
+
+        .joystick-indicator {
+            width: 50px;
+            height: 50px;
+            transform: translate(-50%, -50%);
+            left: 50%;
+            top: 50%;
+        }
+
+        .control-label {
+            position: absolute;
+            left: 5px;
+            top: 5px;
+            font-size: 10px;
+            color: #333;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+
+        .center-marker {
+            position: absolute;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .dot-marker {
+            width: 6px;
+            height: 6px;
+        }
+
+        .guide-line {
+            position: absolute;
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .vertical-line {
+            width: 1px;
+            height: 80%;
+            left: 50%;
+            top: 10%;
+            transform: translateX(-50%);
+        }
+
+        .horizontal-line {
+            width: 80%;
+            height: 1px;
+            top: 50%;
+            left: 10%;
+            transform: translateY(-50%);
+        }
+
+        .joystick-cross-v {
+            width: 2px;
+            height: 80%;
+            left: 50%;
+            top: 10%;
+            transform: translateX(-50%);
+        }
+
+        .joystick-cross-h {
+            width: 80%;
+            height: 2px;
+            top: 50%;
+            left: 10%;
+            transform: translateY(-50%);
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: #fff;
+            padding: 5px;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .emergency-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .connection-settings {
+            padding: 5px;
+            background-color: #f0f0f0;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        .connection-settings input {
+            width: 70%;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        .connection-settings button {
+            width: 28%;
+            padding: 5px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .debug-info {
+            font-size: 10px;
+            color: #666;
+            line-height: 1.2;
+            max-height: 30px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>RC Car Controller</h1>
+        <div id="statusDisplay" class="status">Connecting...</div>
+        <div class="values">
+            <div class="value">
+                <small>F/B</small>
+                <div id="throttleValue">0%</div>
+            </div>
+            <div class="value">
+                <small>Timer</small>
+                <div id="countdown">wait</div>
+            </div>
+            <div class="value">
+                <small>L/R</small>
+                <div id="steeringValue">0%</div>
+            </div>
+        </div>
+        <div class="control-tabs">
+            <div class="tab active" data-method="bars">Dual Control</div>
+            <div class="tab" data-method="joystick">Joystick</div>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <!-- Bars Control Method -->
+        <div id="barsMethod" class="control-method active">
+            <div class="bars-control">
+                <div id="throttleArea" class="throttle-area">
+                    <div class="center-marker dot-marker" style="left: 50%; top: 50%"></div>
+                    <div class="guide-line vertical-line"></div>
+                    <div id="throttleIndicator" class="control-indicator throttle-indicator">⇅</div>
+                    <div class="control-label">THROTTLE (UP/DOWN)</div>
+                </div>
+                
+                <div id="steeringArea" class="steering-area">
+                    <div class="center-marker dot-marker" style="left: 50%; top: 50%"></div>
+                    <div class="guide-line horizontal-line"></div>
+                    <div id="steeringIndicator" class="control-indicator steering-indicator">⇄</div>
+                    <div class="control-label">STEERING (LEFT/RIGHT)</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Joystick Control Method -->
+        <div id="joystickMethod" class="control-method">
+            <div class="joystick-control">
+                <div id="joystick" class="joystick">
+                    <div class="center-marker dot-marker" style="left: 50%; top: 50%"></div>
+                    <div class="guide-line joystick-cross-v"></div>
+                    <div class="guide-line joystick-cross-h"></div>
+                    <div id="joystickIndicator" class="control-indicator joystick-indicator">+</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <button id="emergencyBtn" class="emergency-btn">EMERGENCY STOP</button>
+        
+        <div class="connection-settings">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <input type="text" id="serverUrl" placeholder="http://[your-pi-ip]:4000">
+                <button id="connectBtn">Connect</button>
+            </div>
+            <div id="debugInfo" class="debug-info"></div>
+        </div>
+    </div>
+    
+    <script>
+        // UI elements
+        const statusDisplay = document.getElementById('statusDisplay');
+        const countdown = document.getElementById('countdown');
+        const throttleValue = document.getElementById('throttleValue');
+        const steeringValue = document.getElementById('steeringValue');
+        const debugInfo = document.getElementById('debugInfo');
+        const serverUrlInput = document.getElementById('serverUrl');
+        const connectBtn = document.getElementById('connectBtn');
+        
+        // Control areas and indicators
+        const throttleArea = document.getElementById('throttleArea');
+        const steeringArea = document.getElementById('steeringArea');
+        const throttleIndicator = document.getElementById('throttleIndicator');
+        const steeringIndicator = document.getElementById('steeringIndicator');
+        const joystick = document.getElementById('joystick');
+        const joystickIndicator = document.getElementById('joystickIndicator');
+        const emergencyBtn = document.getElementById('emergencyBtn');
+        
+        // Tabs and control methods
+        const tabs = document.querySelectorAll('.tab');
+        const controlMethods = document.querySelectorAll('.control-method');
+        
+        // Control state
+        let socket = null;
+        let hasControl = false;
+        let countdownInterval;
+        let throttlePercent = 0;
+        let steeringPercent = 0;
+        let activeMethod = 'bars';
+        
+        // Touch tracking for the bars method
+        // Store touch data with identifier, element and position
+        let activeTouches = [];
+        
+        // Touch tracking for the joystick method
+        let joystickTracking = false;
+        let joystickTouchId = null;
+        
+        // Try to determine server URL from current location
+        let currentUrl = window.location.href;
+        let serverBaseUrl = currentUrl.split('/').slice(0, 3).join('/');
+        
+        // Default to current origin if available
+        serverUrlInput.value = serverBaseUrl;
+        
+        // Logging helper function
+        function log(message) {
+            console.log(message);
+            debugInfo.innerHTML = message + '<br>' + debugInfo.innerHTML;
+            if (debugInfo.innerHTML.split('<br>').length > 10) {
+                debugInfo.innerHTML = debugInfo.innerHTML.split('<br>').slice(0, 10).join('<br>');
+            }
+        }
+        
+        // Socket connection setup
+        function initSocket(url) {
+            // Clean up existing socket if any
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+            
+            log(`Connecting to: ${url}`);
+            statusDisplay.textContent = `Connecting to ${url}...`;
+            
+            // Create new socket with explicit transport preferences
+            socket = io(url, {
+                reconnection: true,
+                reconnectionAttempts: 5,
+                reconnectionDelay: 1000,
+                timeout: 10000,
+                // Try polling first as websocket is failing
+                transports: ['polling', 'websocket']
+            });
+            
+            // Connection events
+            socket.on('connect', () => {
+                log(`Connected! SocketID: ${socket.id}`);
+                statusDisplay.textContent = 'Connected. Waiting for turn...';
+                statusDisplay.style.backgroundColor = '#d0ffd0';
+                
+                // Request to be added to the control queue
+                socket.emit('userRequestAdd', { message: 'request control' });
+            });
+            
+            socket.on('connect_error', (error) => {
+                log(`Connection error: ${error.message}`);
+                statusDisplay.textContent = `Connection error: ${error.message}`;
+                statusDisplay.style.backgroundColor = '#ffd0d0';
+            });
+            
+            socket.on('reconnect_attempt', (attemptNumber) => {
+                log(`Reconnection attempt #${attemptNumber}`);
+            });
+            
+            socket.on('disconnect', (reason) => {
+                log(`Disconnected: ${reason}`);
+                statusDisplay.textContent = `Disconnected: ${reason}`;
+                statusDisplay.style.backgroundColor = '#ffddaa';
+                
+                if (hasControl) {
+                    endControl();
+                }
+            });
+            
+            // Control events
+            socket.on('timestart', (timeAllowed) => {
+                log(`Control granted! Time: ${timeAllowed}s`);
+                hasControl = true;
+                statusDisplay.textContent = 'You have control!';
+                statusDisplay.style.backgroundColor = '#d0ffd0';
+                
+                // Start timer
+                let timeLeft = timeAllowed;
+                countdown.textContent = timeLeft;
+                
+                if (countdownInterval) {
+                    clearInterval(countdownInterval);
+                }
+                
+                countdownInterval = setInterval(() => {
+                    timeLeft--;
+                    countdown.textContent = timeLeft;
+                    socket.emit('timeleft', { message: timeLeft });
+                    
+                    if (timeLeft <= 0) {
+                        endControl();
+                    }
+                }, 1000);
+            });
+        }
+        
+        // Connect button handler
+        connectBtn.addEventListener('click', () => {
+            let url = serverUrlInput.value.trim();
+            if (!url) {
+                alert('Please enter a server URL');
+                return;
+            }
+            
+            // Add protocol if missing
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'http://' + url;
+                serverUrlInput.value = url;
+            }
+            
+            initSocket(url);
+        });
+        
+        // Tab switching
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Reset controls
+                resetControls();
+                sendControlCommand(0, 0);
+                
+                // Set active tab
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Set active method
+                activeMethod = tab.dataset.method;
+                controlMethods.forEach(method => {
+                    method.classList.remove('active');
+                });
+                document.getElementById(`${activeMethod}Method`).classList.add('active');
+            });
+        });
+        
+        function endControl() {
+            // Stop the car
+            sendControlCommand(0, 0);
+        
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+            
+            // Reset controls
+            resetControls();
+            hasControl = false;
+            
+            // Update UI
+            statusDisplay.textContent = 'Your turn ended. Waiting...';
+            statusDisplay.style.backgroundColor = '#e0e0e0';
+            countdown.textContent = 'wait';
+            
+            // Notify server
+            if (socket && socket.connected) {
+                socket.emit('timeover', { message: 'control ended' });
+            }
+        }
+        
+        function resetControls() {
+            // Reset all indicators
+            throttleIndicator.style.top = '50%';
+            steeringIndicator.style.left = '50%';
+            joystickIndicator.style.transform = 'translate(-50%, -50%)';
+            
+            // Reset control values
+            throttlePercent = 0;
+            steeringPercent = 0;
+            
+            // Reset touch tracking
+            activeTouches = [];
+            joystickTracking = false;
+            joystickTouchId = null;
+            
+            // Update displays
+            throttleValue.textContent = '0%';
+            steeringValue.textContent = '0%';
+        }
+        
+        // Function to send control commands
+        function sendControlCommand(throttleVal, steeringVal) {
+            if (!hasControl || !socket || !socket.connected) return;
+            
+            // Convert values to string commands for server
+            let throttle, turn;
+            
+            // Throttle logic
+            if (throttleVal > 0) {
+                throttle = 'forward';
+            } else if (throttleVal < 0) {
+                throttle = 'backward';
+            } else {
+                throttle = 'stop';
+            }
+            
+            // Steering logic
+            if (steeringVal > 0) {
+                turn = 'right';
+            } else if (steeringVal < 0) {
+                turn = 'left';
+            } else {
+                turn = 'none';
+            }
+            
+            // Send command to server with percentage values
+            socket.emit('message', {
+                throttle: throttle,
+                turn: turn,
+                throttle_percent: Math.abs(throttleVal),
+                turn_percent: Math.abs(steeringVal)
+            });
+        }
+        
+        // Find touch in active touches array
+        function findTouchIndex(id) {
+            for (let i = 0; i < activeTouches.length; i++) {
+                if (activeTouches[i].id === id) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+        
+        // ===== BARS CONTROL FUNCTIONS =====
+        
+        // Update throttle control
+        function updateThrottle(clientY) {
+            if (!hasControl || activeMethod !== 'bars') return;
+            
+            const rect = throttleArea.getBoundingClientRect();
+            const areaHeight = rect.height;
+            const areaCenter = rect.top + areaHeight / 2;
+            
+            // Calculate distance from center (negative is up/forward, positive is down/backward)
+            let distanceFromCenter = clientY - areaCenter;
+            
+            // Limit to boundaries
+            const maxDistance = areaHeight / 2 - 20;
+            distanceFromCenter = Math.max(-maxDistance, Math.min(maxDistance, distanceFromCenter));
+            
+            // Calculate percent (-100 to 100)
+            throttlePercent = -Math.round((distanceFromCenter / maxDistance) * 100);
+            
+            // Position indicator
+            const newTop = 50 + (distanceFromCenter / maxDistance) * 50;
+            throttleIndicator.style.top = `${newTop}%`;
+            
+            // Update display
+            throttleValue.textContent = `${throttlePercent}%`;
+            
+            // Send command
+            // TODO send control command only if it is different
+            sendControlCommand(throttlePercent, steeringPercent);
+        }
+        
+        // Update steering control
+        function updateSteering(clientX) {
+            if (!hasControl || activeMethod !== 'bars') return;
+            
+            const rect = steeringArea.getBoundingClientRect();
+            const areaWidth = rect.width;
+            const areaCenter = rect.left + areaWidth / 2;
+            
+            // Calculate distance from center (negative is left, positive is right)
+            let distanceFromCenter = clientX - areaCenter;
+            
+            // Limit to boundaries
+            const maxDistance = areaWidth / 2 - 20;
+            distanceFromCenter = Math.max(-maxDistance, Math.min(maxDistance, distanceFromCenter));
+            
+            // Calculate percent (-100 to 100)
+            steeringPercent = Math.round((distanceFromCenter / maxDistance) * 100);
+            
+            // Position indicator
+            const newLeft = 50 + (distanceFromCenter / maxDistance) * 50;
+            steeringIndicator.style.left = `${newLeft}%`;
+            
+            // Update display
+            steeringValue.textContent = `${steeringPercent}%`;
+            
+            // Send command
+            // TODO send control command only if it is different
+            sendControlCommand(throttlePercent, steeringPercent);
+        }
+        
+        // ===== JOYSTICK CONTROL FUNCTION =====
+        
+        // Update joystick control
+        function updateJoystick(clientX, clientY) {
+            if (!hasControl || activeMethod !== 'joystick') return;
+            
+            const rect = joystick.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            
+            // Calculate distance from center
+            let deltaX = clientX - centerX;
+            let deltaY = clientY - centerY;
+            
+            // Limit to circular boundary
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            const maxDistance = rect.width / 2 - 25; // Joystick radius minus handle radius
+            
+            if (distance > maxDistance) {
+                const angle = Math.atan2(deltaY, deltaX);
+                deltaX = Math.cos(angle) * maxDistance;
+                deltaY = Math.sin(angle) * maxDistance;
+            }
+            
+            // Position joystick indicator
+            joystickIndicator.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))`;
+            
+            // Calculate control percentages (-100 to 100)
+            steeringPercent = Math.round((deltaX / maxDistance) * 100);
+            throttlePercent = -Math.round((deltaY / maxDistance) * 100);
+            
+            // Update displays
+            throttleValue.textContent = `${throttlePercent}%`;
+            steeringValue.textContent = `${steeringPercent}%`;
+            
+            // Send command
+            sendControlCommand(throttlePercent, steeringPercent);
+        }
+        
+        // ===== TOUCH EVENT HANDLERS =====
+        
+        // Throttle area touch start
+        throttleArea.addEventListener('touchstart', (e) => {
+            if (!hasControl || activeMethod !== 'bars') return;
+            e.preventDefault();
+            
+            // Get the touch
+            const touch = e.changedTouches[0];
+            
+            // Add to active touches
+            activeTouches.push({
+                id: touch.identifier,
+                element: 'throttle',
+                initialY: touch.clientY
+            });
+            
+            // Update control
+            updateThrottle(touch.clientY);
+        }, { passive: false });
+        
+        // Steering area touch start
+        steeringArea.addEventListener('touchstart', (e) => {
+            if (!hasControl || activeMethod !== 'bars') return;
+            e.preventDefault();
+            
+            // Get the touch
+            const touch = e.changedTouches[0];
+            
+            // Add to active touches
+            activeTouches.push({
+                id: touch.identifier,
+                element: 'steering',
+                initialX: touch.clientX
+            });
+            
+            // Update control
+            updateSteering(touch.clientX);
+        }, { passive: false });
+        
+        // Joystick touch start
+        joystick.addEventListener('touchstart', (e) => {
+            if (!hasControl || activeMethod !== 'joystick') return;
+            e.preventDefault();
+            
+            // Only track first touch on joystick
+            if (!joystickTracking) {
+                const touch = e.changedTouches[0];
+                joystickTracking = true;
+                joystickTouchId = touch.identifier;
+                updateJoystick(touch.clientX, touch.clientY);
+            }
+        }, { passive: false });
+        
+        // Touch move handler for all controls
+        document.addEventListener('touchmove', (e) => {
+            if (!hasControl) return;
+            e.preventDefault();
+            
+            // Process each changed touch
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                
+                // Handle bars control touches
+                if (activeMethod === 'bars') {
+                    const touchIndex = findTouchIndex(touch.identifier);
+                    
+                    if (touchIndex !== -1) {
+                        const touchData = activeTouches[touchIndex];
+                        
+                        if (touchData.element === 'throttle') {
+                            updateThrottle(touch.clientY);
+                        } else if (touchData.element === 'steering') {
+                            updateSteering(touch.clientX);
+                        }
+                    }
+                }
+                // Handle joystick control touch
+                else if (activeMethod === 'joystick' && joystickTracking && touch.identifier === joystickTouchId) {
+                    updateJoystick(touch.clientX, touch.clientY);
+                }
+            }
+        }, { passive: false });
+        
+        // Touch end/cancel handling
+        document.addEventListener('touchend', (e) => {
+            // Check each ended touch
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                
+                if (activeMethod === 'bars') {
+                    const touchIndex = findTouchIndex(touch.identifier);
+                    
+                    if (touchIndex !== -1) {
+                        const touchData = activeTouches[touchIndex];
+                        
+                        // Reset the appropriate control
+                        if (touchData.element === 'throttle') {
+                            throttleIndicator.style.top = '50%';
+                            throttlePercent = 0;
+                            throttleValue.textContent = '0%';
+                        } else if (touchData.element === 'steering') {
+                            steeringIndicator.style.left = '50%';
+                            steeringPercent = 0;
+                            steeringValue.textContent = '0%';
+                        }
+                        
+                        // Remove the touch
+                        activeTouches.splice(touchIndex, 1);
+                        
+                        // Send command with updated values
+                        sendControlCommand(throttlePercent, steeringPercent);
+                    }
+                }
+                else if (activeMethod === 'joystick' && touch.identifier === joystickTouchId) {
+                    joystickTracking = false;
+                    joystickTouchId = null;
+                    joystickIndicator.style.transform = 'translate(-50%, -50%)';
+                    throttlePercent = 0;
+                    steeringPercent = 0;
+                    throttleValue.textContent = '0%';
+                    steeringValue.textContent = '0%';
+                    
+                    sendControlCommand(0, 0);
+                }
+            }
+        });
+        
+        document.addEventListener('touchcancel', (e) => {
+            // Similar to touchend but for canceled touches
+            for (let i = 0; i < e.changedTouches.length; i++) {
+                const touch = e.changedTouches[i];
+                
+                if (activeMethod === 'bars') {
+                    const touchIndex = findTouchIndex(touch.identifier);
+                    
+                    if (touchIndex !== -1) {
+                        const touchData = activeTouches[touchIndex];
+                        
+                        // Reset the appropriate control
+                        if (touchData.element === 'throttle') {
+                            throttleIndicator.style.top = '50%';
+                            throttlePercent = 0;
+                            throttleValue.textContent = '0%';
+                        } else if (touchData.element === 'steering') {
+                            steeringIndicator.style.left = '50%';
+                            steeringPercent = 0;
+                            steeringValue.textContent = '0%';
+                        }
+                        
+                        // Remove the touch
+                        activeTouches.splice(touchIndex, 1);
+                    }
+                }
+                else if (activeMethod === 'joystick' && touch.identifier === joystickTouchId) {
+                    joystickTracking = false;
+                    joystickTouchId = null;
+                    joystickIndicator.style.transform = 'translate(-50%, -50%)';
+                    throttlePercent = 0;
+                    steeringPercent = 0;
+                    throttleValue.textContent = '0%';
+                    steeringValue.textContent = '0%';
+                }
+            }
+            
+            // Send command with updated values
+            if (hasControl) {
+                sendControlCommand(throttlePercent, steeringPercent);
+            }
+        });
+        
+        // ===== MOUSE EVENT HANDLERS (for desktop testing) =====
+        let mouseThrottleActive = false;
+        let mouseSteeringActive = false;
+        let mouseJoystickActive = false;
+        
+        throttleArea.addEventListener('mousedown', (e) => {
+            if (!hasControl || activeMethod !== 'bars') return;
+            mouseThrottleActive = true;
+            updateThrottle(e.clientY);
+        });
+        
+        steeringArea.addEventListener('mousedown', (e) => {
+            if (!hasControl || activeMethod !== 'bars') return;
+            mouseSteeringActive = true;
+            updateSteering(e.clientX);
+        });
+        
+        joystick.addEventListener('mousedown', (e) => {
+            if (!hasControl || activeMethod !== 'joystick') return;
+            mouseJoystickActive = true;
+            updateJoystick(e.clientX, e.clientY);
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!hasControl) return;
+            
+            if (activeMethod === 'bars') {
+                if (mouseThrottleActive) {
+                    updateThrottle(e.clientY);
+                }
+                
+                if (mouseSteeringActive) {
+                    updateSteering(e.clientX);
+                }
+            }
+            else if (activeMethod === 'joystick' && mouseJoystickActive) {
+                updateJoystick(e.clientX, e.clientY);
+            }
+        });
+        
+        document.addEventListener('mouseup', () => {
+            if (mouseThrottleActive) {
+                mouseThrottleActive = false;
+                throttleIndicator.style.top = '50%';
+                throttlePercent = 0;
+                throttleValue.textContent = '0%';
+            }
+            
+            if (mouseSteeringActive) {
+                mouseSteeringActive = false;
+                steeringIndicator.style.left = '50%';
+                steeringPercent = 0;
+                steeringValue.textContent = '0%';
+            }
+            
+            if (mouseJoystickActive) {
+                mouseJoystickActive = false;
+                joystickIndicator.style.transform = 'translate(-50%, -50%)';
+                throttlePercent = 0;
+                steeringPercent = 0;
+                throttleValue.textContent = '0%';
+                steeringValue.textContent = '0%';
+            }
+            
+            if (hasControl) {
+                sendControlCommand(throttlePercent, steeringPercent);
+            }
+        });
+        
+        // Emergency stop button
+        emergencyBtn.addEventListener('click', () => {
+            log('Emergency stop activated');
+            resetControls();
+            if (hasControl) {
+                sendControlCommand(0, 0);
+            }
+        });
+        
+        // Keyboard controls
+        document.addEventListener('keydown', (e) => {
+            if (!hasControl || e.repeat) return;
+            
+            switch(e.key) {
+                case 'ArrowUp':
+                    throttlePercent = 100;
+                    break;
+                case 'ArrowDown':
+                    throttlePercent = -100;
+                    break;
+                case 'ArrowLeft':
+                    steeringPercent = -100;
+                    break;
+                case 'ArrowRight':
+                    steeringPercent = 100;
+                    break;
+                case ' ': // Spacebar for stop
+                    resetControls();
+                    break;
+                default:
+                    return;
+            }
+            
+            // Update displays
+            throttleValue.textContent = `${throttlePercent}%`;
+            steeringValue.textContent = `${steeringPercent}%`;
+            
+            // Update indicators based on active method
+            if (activeMethod === 'bars') {
+                if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                    throttleIndicator.style.top = (throttlePercent >= 0) ? '0%' : '100%';
+                }
+                if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                    steeringIndicator.style.left = (steeringPercent >= 0) ? '100%' : '0%';
+                }
+            }
+            else if (activeMethod === 'joystick') {
+                const maxPos = 25; // px from center
+                let deltaX = 0, deltaY = 0;
+                
+                if (e.key === 'ArrowUp') deltaY = -maxPos;
+                else if (e.key === 'ArrowDown') deltaY = maxPos;
+                
+                if (e.key === 'ArrowLeft') deltaX = -maxPos;
+                else if (e.key === 'ArrowRight') deltaX = maxPos;
+                
+                joystickIndicator.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))`;
+            }
+            
+            sendControlCommand(throttlePercent, steeringPercent);
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            if (!hasControl) return;
+            
+            switch(e.key) {
+                case 'ArrowUp':
+                case 'ArrowDown':
+                    throttlePercent = 0;
+                    if (activeMethod === 'bars') {
+                        throttleIndicator.style.top = '50%';
+                    }
+                    break;
+                case 'ArrowLeft':
+                case 'ArrowRight':
+                    steeringPercent = 0;
+                    if (activeMethod === 'bars') {
+                        steeringIndicator.style.left = '50%';
+                    }
+                    break;
+                default:
+                    return;
+            }
+            
+            if (activeMethod === 'joystick' && (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+                joystickIndicator.style.transform = 'translate(-50%, -50%)';
+            }
+            
+            // Update displays
+            throttleValue.textContent = `${throttlePercent}%`;
+            steeringValue.textContent = `${steeringPercent}%`;
+            
+            sendControlCommand(throttlePercent, steeringPercent);
+        });
+        
+        // Handle visibility and page unload
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'hidden' && hasControl) {
+                sendControlCommand(0, 0);
+                resetControls();
+            }
+        });
+        
+        window.addEventListener('beforeunload', function() {
+            if (hasControl) {
+                socket.emit('message', { throttle: 'stop', turn: 'none' });
+            }
+        });
+        
+        // Try to detect the IP automatically
+        function detectLocalNetwork() {
+            // Try to use common local network patterns
+            const possibleIPs = [
+                window.location.hostname, // Current hostname
+                '127.0.0.1',
+                'localhost'
+            ];
+            
+            // Common IP ranges for local networks
+            for (let i = 1; i < 10; i++) {
+                possibleIPs.push(`192.168.1.${i}`);
+                possibleIPs.push(`192.168.0.${i}`);
+                possibleIPs.push(`10.0.0.${i}`);
+            }
+            
+            // Store unique IPs
+            const uniqueIPs = [...new Set(possibleIPs)];
+            
+            log(`Auto-detecting network. Trying ${uniqueIPs.length} possible addresses.`);
+            
+            // Try to connect to each IP
+            for (const ip of uniqueIPs) {
+                // Skip empty or localhost if not the current hostname
+                if (!ip || (ip === 'localhost' && window.location.hostname !== 'localhost')) {
+                    continue;
+                }
+                
+                const url = `http://${ip}:4000`;
+                const img = new Image();
+                img.src = `${url}/favicon.ico?t=${Date.now()}`;
+                
+                img.onload = function() {
+                    log(`Found server at ${url}!`);
+                    serverUrlInput.value = url;
+                };
+            }
+        }
+        
+        // Initialize connection
+        if (serverUrlInput.value) {
+            // Wait a bit to let page load before connecting
+            setTimeout(() => {
+                initSocket(serverUrlInput.value);
+            }, 500);
+        } else {
+            detectLocalNetwork();
+        }
+    </script>
+</body>
+</html>
