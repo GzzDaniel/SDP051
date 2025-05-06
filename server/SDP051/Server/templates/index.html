@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RC Car Controller</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+
+</head>
+<body>
+    <div class="header">
+        <h1>RC Car Controller</h1>
+        <div id="statusDisplay" class="status">Connecting...</div>
+        <div class="values">
+            <div class="value">
+                <small>F/B</small>
+                <div id="throttleValue">0%</div>
+            </div>
+            <div class="value">
+                <small>Timer</small>
+                <div id="countdown">wait</div>
+            </div>
+            <div class="value">
+                <small>L/R</small>
+                <div id="steeringValue">0%</div>
+            </div>
+        </div>
+        <div class="control-tabs">
+            <div class="tab active" data-method="bars">Dual Control</div>
+            <div class="tab" data-method="joystick">Joystick</div>
+        </div>
+    </div>
+    <div style="overflow: hidden; max-width:100%;height:auto;">
+        <iframe 
+      src="https://passing-repeated-forwarding-custom.trycloudflare.com/" 
+      width="100%" height="480" style="border:none; display: block; margin: 0 auto; object-fit:contain;" > 
+    </iframe>
+    </div>
+    
+
+      
+
+    <div class="controls">
+        <!-- Bars Control Method -->
+        <div id="barsMethod" class="control-method active">
+            <div class="bars-control">
+                <div id="throttleArea" class="throttle-area" style="top: 40%;">
+                    <div class="center-marker dot-marker" style="left: 50%; top: 50%"></div>
+                    <div class="guide-line vertical-line"></div>
+                    <div id="throttleIndicator" class="control-indicator throttle-indicator" style="top: 50%;">⇅</div>
+                    <div class="control-label">THROTTLE (UP/DOWN)</div>
+                </div>
+                
+                <div id="steeringArea" class="steering-area" style="top: 40%;">
+                    <div class="center-marker dot-marker" style="left: 50%; top: 50%"></div>
+                    <div class="guide-line horizontal-line" style="top: 50%;"></div>
+                    <div id="steeringIndicator" class="control-indicator steering-indicator" style="top: 50%;">⇄</div>
+                    <div class="control-label-2" style="margin-right: auto;">STEERING (LEFT/RIGHT)</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Joystick Control Method -->
+        <div id="joystickMethod" class="control-method">
+            <div class="joystick-control">
+                <div id="joystick" class="joystick">
+                    <div class="center-marker dot-marker" style="left: 50%; top: 50%"></div>
+                    <div class="guide-line joystick-cross-v"></div>
+                    <div class="guide-line joystick-cross-h"></div>
+                    <div id="joystickIndicator" class="control-indicator joystick-indicator">+</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+
+        <div class="connection-settings">
+            <div id="debugInfo" class="debug-info"></div>
+        </div>
+    </div>
+
+    <script src="controller.js"></script>
+
+</body>
+
+
+<style>
+    @media screen and (orientation: landscape)and (max-width: 1024px) {
+        .joystick{
+            top: 50%;
+        }
+    }
+    @media screen and (orientation: landscape) {
+        .joystick{
+            top: 125%;
+        }
+    }
+    @media screen and (orientation: portrait) and (max-width: 1024px){
+        .joystick{
+            top: 125%;
+        }
+    }
+    .control-label {
+        position: absolute;
+        left: 5px;
+        top: 5px;
+        font-size: 10px;
+        color: #333;
+        background-color: rgba(255, 255, 255, 0.7);
+        padding: 2px 5px;
+        border-radius: 3px;
+    }
+    .control-label-2 {
+        position: absolute;
+        right: 5px;
+        top: 5px;
+        font-size: 10px;
+        color: #333;
+        background-color: rgba(255, 255, 255, 0.7);
+        padding: 2px 5px;
+        border-radius: 3px;
+    }
+
+</style>
+
+<script>
+    function tryFullscreen() {
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+      } else if (elem.msRequestFullscreen) {
+        elem.msRequestFullscreen();
+      }
+    }
+
+    function setupFullscreenOnLandscape() {
+      window.addEventListener("click", () => {
+        if (window.matchMedia("(orientation: landscape) and (max-width: 1024px)").matches) {
+          tryFullscreen();
+          const notice = document.getElementById("notice");
+          if (notice) notice.style.display = "none";
+        }
+      });
+    }
+
+    window.onload = setupFullscreenOnLandscape;
+</script>
+
+
+</html>

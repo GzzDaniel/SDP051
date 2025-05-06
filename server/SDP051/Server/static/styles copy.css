@@ -1,0 +1,287 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100%;
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    touch-action: none;
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+}
+
+.header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: #fff;
+    padding: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    z-index: 10;
+}
+
+h1 {
+    text-align: center;
+    font-size: 16px;
+    margin: 2px 0;
+}
+
+.status {
+    text-align: center;
+    font-size: 12px;
+    padding: 2px;
+    margin: 2px 0;
+    background-color: #e0e0e0;
+    border-radius: 3px;
+}
+
+.values {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin: 2px 0;
+}
+
+.value {
+    flex: 1;
+    text-align: center;
+    padding: 2px;
+    background-color: #f8f8f8;
+    margin: 0 2px;
+    border-radius: 3px;
+}
+
+.control-tabs {
+    display: flex;
+    margin: 2px 0;
+}
+
+.tab {
+    flex: 1;
+    text-align: center;
+    padding: 5px;
+    font-size: 12px;
+    background-color: #ddd;
+    border: 1px solid #ccc;
+    border-radius: 3px 3px 0 0;
+    margin: 0 1px;
+}
+
+.tab.active {
+    background-color: #3498db;
+    color: white;
+    border-color: #3498db;
+}
+
+.controls {
+    position: absolute;
+    top: 95px;
+    bottom: 80px;
+    left: 0;
+    right: 0;
+}
+
+.control-method {
+    display: none;
+    height: 100%;
+    width: 100%;
+}
+
+.control-method.active {
+    display: block;
+}
+
+/* Bars Control */
+.bars-control {
+    display: flex;
+    height: 100%;
+}
+
+.throttle-area {
+    position: relative;
+    flex: 1;
+    background-color: rgba(220, 220, 220, 0.2);
+    touch-action: none;
+    border-right: 1px solid #ddd;
+}
+
+.steering-area {
+    position: relative;
+    flex: 1;
+    background-color: rgba(220, 220, 220, 0.2);
+    touch-action: none;
+}
+
+/* Joystick Control */
+.joystick-control {
+    position: relative;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.joystick {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    background-color: rgba(220, 220, 220, 0.5);
+    border-radius: 50%;
+    border: 2px solid #ddd;
+    touch-action: none;
+}
+
+/* Common Control Elements */
+.control-indicator {
+    position: absolute;
+    border-radius: 50%;
+    background-color: rgba(52, 152, 219, 0.7);
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.throttle-indicator, .steering-indicator {
+    width: 40px;
+    height: 40px;
+    transform: translate(-50%, -50%);
+    left: 50%;
+    top: 50%;
+}
+
+.joystick-indicator {
+    width: 50px;
+    height: 50px;
+    transform: translate(-50%, -50%);
+    left: 50%;
+    top: 50%;
+}
+
+.control-label {
+    position: absolute;
+    left: 5px;
+    top: 5px;
+    font-size: 10px;
+    color: #333;
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 2px 5px;
+    border-radius: 3px;
+}
+
+.center-marker {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.dot-marker {
+    width: 6px;
+    height: 6px;
+}
+
+.guide-line {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.vertical-line {
+    width: 1px;
+    height: 80%;
+    left: 50%;
+    top: 10%;
+    transform: translateX(-50%);
+}
+
+.horizontal-line {
+    width: 80%;
+    height: 1px;
+    top: 50%;
+    left: 10%;
+    transform: translateY(-50%);
+}
+
+.joystick-cross-v {
+    width: 2px;
+    height: 80%;
+    left: 50%;
+    top: 10%;
+    transform: translateX(-50%);
+}
+
+.joystick-cross-h {
+    width: 80%;
+    height: 2px;
+    top: 50%;
+    left: 10%;
+    transform: translateY(-50%);
+}
+
+.footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #fff;
+    padding: 5px;
+    box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.emergency-btn {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.connection-settings {
+    padding: 5px;
+    background-color: #f0f0f0;
+    border-radius: 3px;
+    font-size: 12px;
+}
+
+.connection-settings input {
+    width: 70%;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 12px;
+}
+
+.connection-settings button {
+    width: 28%;
+    padding: 5px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    font-size: 12px;
+}
+
+.debug-info {
+    font-size: 10px;
+    color: #666;
+    line-height: 1.2;
+    max-height: 30px;
+    overflow-y: auto;
+}
